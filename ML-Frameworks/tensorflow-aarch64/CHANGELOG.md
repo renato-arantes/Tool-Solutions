@@ -21,6 +21,17 @@ where `YY` is the year, and `MM` the month of the increment.
 
 ### Fixed
 
+## [r26.10] 2026-10-28
+
+### Added
+
+### Changed
+ - Updates TensorFlow hash to b5d8801b1e0db562ced3f7f940c65f25d7aea453 from nightly, Sep 24th
+
+### Removed
+
+### Fixed
+
 ## [r26.08] 2026-08-03
 
 ### Added

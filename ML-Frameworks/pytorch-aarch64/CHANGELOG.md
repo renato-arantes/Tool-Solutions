@@ -21,6 +21,32 @@ where `YY` is the year, and `MM` the month of the increment.
 
 ### Fixed
 
+## [r26.10] 2026-09-28
+
+### Added
+ - Adds PyTorch [PR #196237](https://github.com/pytorch/pytorch/pull/196237), to support Triton module globals in user-defined kernels.
+ - Adds PyTorch [PR #196435](https://github.com/pytorch/pytorch/pull/196435), to replace linear inner-product calls with matrix multiplication.
+
+### Changed
+ - Updates `OPENBLAS_VERSION` from v0.3.33 to v0.3.34.
+ - Updates `torchao` from 0.18.0.dev20260726 to 0.19.0.dev20260928.
+ - Updates `torchvision` from 0.29.0.dev20260726 to 0.30.0.dev20260927.
+ - Updates hashes for:
+   - `PYTORCH_HASH=01949e998f4ecac6f0e3661285bbd12ce1467779`, from viable/strict, October 1st, 2026.
+   - `IDEEP_HASH=3d5a3a466de3952f4aa56632c23660243da1802d`, from ideep_pytorch, September 27th, 2026.
+   - `ONEDNN_HASH=3618ea62a9f1ccd98bacb2c683296c08c1e87b96`, from main, September 27th, 2026.
+   - `KLEIDIAI_HASH=f68e4feebff1599632cdd900d1acf3ba9808aece`, v1.31.0 from main, September 25th, 2026.
+
+### Removed
+ - Removes the obsolete workaround that disabled `sudo` in PyTorch's manywheel build because upstream [PR #189837](https://github.com/pytorch/pytorch/pull/189837) removed the Docker-daemon restart commands during its migration to remote BuildKit.
+ - Removes obsolete oneDNN KleidiAI submodule setup now that PR #5156 adds KleidiAI as a regular directory.
+ - Disables the KleidiAI [MR #763](https://gitlab.arm.com/kleidi/kleidiai/-/merge_requests/763) patch.
+
+### Fixed
+ - Updates `build-wheel.sh` to use PyTorch's new `.ci/wheel/linux/build.sh` entrypoint, fixing the missing-script failure after the source bump.
+ - Prepares CPU wheel metadata before building, removing missing license entries only for absent dependencies deliberately pruned by `get-source.sh`. This fixes PEP 639 metadata validation while preserving retained licenses and rejecting unexpected missing files.
+ - Passes the repaired manylinux wheel path explicitly from `build-wheel.sh` to `build.sh`, replacing log parsing that selected the intermediate `linux_aarch64` wheel name and caused Docker packaging to fail after successful wheel builds. In r26.08, `wheel tags` printed the final filename; r26.10's upstream repair uses the `auditwheel` Python API and logs only a repair count, leaving the intermediate name as the last filename in the log.
+
 ## [r26.08] 2026-08-03
 
 ### Added
