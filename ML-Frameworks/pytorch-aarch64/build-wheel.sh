@@ -140,6 +140,12 @@ fi
 
 docker_exec bash "${PYTORCH_CONTAINER_DIR}/.ci/pytorch/binary_populate_env.sh"
 
+# PEP 639 requires every declared license file to exist. get-source.sh prunes
+# CPU-unused dependencies, so reconcile only those absent dependencies' entries.
+# Use the builder's Python 3.12 so the helper has stdlib TOML support.
+docker exec -i "$TORCH_BUILD_CONTAINER" /opt/python/cp312-cp312/bin/python3 - "${PYTORCH_CONTAINER_DIR}" \
+    < prepare-wheel-metadata.py
+
 # If there are multiple wheels in the dist directory, an old wheel can be
 # erroneously copied to results, so we clear the directory to be sure
 docker_exec rm -rf "${PYTORCH_CONTAINER_DIR}/dist"
@@ -160,5 +166,25 @@ docker_exec bash -lc "
   WIPE_RH_CUDA_AFTER_BUILD=0 \
   PYTORCH_BUILD_NUMBER=0 \
   PYTORCH_BUILD_VERSION=${PYTORCH_BUILD_VERSION} \
-  bash ${PYTORCH_CONTAINER_DIR}/.ci/manywheel/build.sh
+  bash ${PYTORCH_CONTAINER_DIR}/.ci/wheel/linux/build.sh
 "
+
+# The upstream pipeline logs the raw linux_* name before repair retags it.
+# Identify the final artifact for this version and ABI and report its real path.
+shopt -s nullglob
+wheel_files=("${PYTORCH_FINAL_PACKAGE_LOCAL_DIR}"/torch-"${PYTORCH_BUILD_VERSION}"-cp"${PYTHON_VERSION/./}"-cp"${PYTHON_VERSION/./}"-manylinux*_aarch64.whl)
+shopt -u nullglob
+if [[ ${#wheel_files[@]} -ne 1 ]]; then
+    >&2 echo "error: expected one repaired wheel for ${PYTORCH_BUILD_VERSION}, found ${#wheel_files[@]} in ${PYTORCH_FINAL_PACKAGE_LOCAL_DIR}"
+    exit 1
+fi
+if [[ ! -f "${wheel_files[0]}" ]]; then
+    >&2 echo "error: repaired wheel is not a file: ${wheel_files[0]}"
+    exit 1
+fi
+# dockerize.sh's Dockerfile COPY expects a path relative to its build context.
+torch_wheel_path=$(realpath --relative-to="$PWD" "${wheel_files[0]}")
+printf 'Repaired wheel: %s\n' "$torch_wheel_path"
+if [[ -n "${PYTORCH_WHEEL_PATH_FILE:-}" ]]; then
+    printf '%s\n' "$torch_wheel_path" > "$PYTORCH_WHEEL_PATH_FILE"
+fi

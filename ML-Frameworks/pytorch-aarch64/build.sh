@@ -63,11 +63,16 @@ build_wheel_args=()
 if [[ "$*" == *--disable-ccache* ]]; then
     build_wheel_args+=(--disable-ccache)
 fi
-./build-wheel.sh "${build_wheel_args[@]}"
+wheel_path_file=$(mktemp)
+trap 'rm -f "$wheel_path_file"' EXIT
+PYTORCH_WHEEL_PATH_FILE="$wheel_path_file" ./build-wheel.sh "${build_wheel_args[@]}"
 
 [[ $* == *--wheel-only* ]] && exit 0
 
-# Use the second to last match, otherwise grep finds itself
-torch_wheel_name=$(grep -o "torch-.*.whl" "$build_log" | head -n -1 | tail -n 1)
+# Use the repaired artifact reported by the wheel builder, not its raw-wheel log.
+if ! IFS= read -r torch_wheel_path < "$wheel_path_file" || [[ ! -f "$torch_wheel_path" ]]; then
+    >&2 echo "error: wheel builder did not report an existing repaired wheel"
+    exit 1
+fi
 
-./dockerize.sh "results/${torch_wheel_name}" --build-only
+./dockerize.sh "$torch_wheel_path" --build-only
